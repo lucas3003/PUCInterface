@@ -1,0 +1,15 @@
+record(waveform, "test")
+{
+   field(DTYP, "stream")
+   field(INP, "@demo.proto getWave NC")
+   field(FTVL, "SHORT")
+   field(NELM, "65536")
+   field(SCAN, "1 second")
+}
+
+record(ai, "leitura")
+{
+   field(DTYP, "stream")
+   field(INP, "@demo.proto leitura 20 0 4 NC"
+   field(VAL, "2")
+}

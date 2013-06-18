@@ -1,0 +1,27 @@
+Terminator = "";
+InTerminator = "";
+ReplyTimeout = 10000;
+ReadTimeout = 10000;
+
+getWave
+{
+   out "Wave?";
+   in "Wave %d";
+}
+
+leitura
+{
+   # $1 = Destino; $2 = Id variavel;   
+   out "LER_VARIAVEL \$1 \$2";   
+   in  "LEITURA_VARIAVEL %f";
+} 
+
+escrita
+{
+   # $1 = Destino; $2 = Tamanho; $3 = ID Variavel; %f = Valor
+   out "ESCREVER_VARIAVEL \$1 \$2 \$3 %f";  
+   in "OK";
+}
+
+
+

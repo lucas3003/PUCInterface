@@ -1,0 +1,17 @@
+record(ao, "escrita")
+{
+   field(DTYP, "stream")	
+   field(OUT, "@demo.proto escrita(20,3,10) NC")
+   field(SCAN, "Pasive")
+   field(EGUF, "10")
+   field(EGUL, "-10")
+}
+
+record(ai, "leitura")
+{
+   field(DTYP, "stream")	
+   field(INP, "@demo.proto leitura(20,4) NC")
+   field(SCAN, "1 second")
+   field(EGUF, "10")
+   field(EGUL, "-10")
+}
