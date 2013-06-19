@@ -57,105 +57,31 @@ bool Comando :: verificaChecksum(unsigned char * enderecamento, unsigned char * 
 	return true;
 }
 
+
 char * Comando :: sendPacket(char* fromStream, size_t * tam)
 {
    debug("sendPacket chamado\n");
    debug(fromStream);
 	
-	char * buf;
+	//char * buf;
     char *rec;
-    char * prox = strstr(fromStream, " ");
+    prox = strstr(fromStream, " ");
     
     int i = ateEspaco(fromStream);
     rec = (char *) malloc(i);
     sscanf(fromStream, "%s", rec);
     prox++;
     
-   if(strcmp(rec, "LER_VARIAVEL") == 0) comando = LER_VARIAVEL;
-   else if(strcmp(rec, "ESCREVER_VARIAVEL") == 0) comando = ESCREVER_VARIAVEL;
-
-   if(comando == LER_VARIAVEL)
-   {	    
-	    unsigned int checksum = 0;
-	    int indice = 0;
-	    buf = (char *) malloc(6*sizeof(char));
-	    *tam = 6*sizeof(char);
-	    
-		//Destino
-		process(&prox, &rec);
-		debug(rec);
-		
-		buf[0] = atoi(rec);		
-		buf[1] = 0;
-		buf[2] = LER_VARIAVEL;
-		buf[3] = 1;
-		
-		//Id variavel
-		process(&prox, &rec);
-		debug(rec);
-					
-		buf[4] = atoi(rec);		
-		
-		while(indice <= 4)
-		{
-			checksum += buf[indice];
-			indice++;			
-		}
-		
-		buf[5] = ~(checksum & 0xFF) + 1;
+   if(strcmp(rec, "LER_VARIAVEL") == 0) 
+   {
+	   comando = LER_VARIAVEL;
+	   *tam = 6*sizeof(char);
+	   lerVariavel();
    }
-   else if(comando == ESCREVER_VARIAVEL)
-   {	   
-	   char * destino, * tamanho;	 
-	   int i;
-	   int checksum = 0;
-	   double tensao;
-	   unsigned int conteudo;	  
-	  
-	   //Destino
-	   process(&prox, &rec);	   	   
-	   destino = rec;	   
-	   
-	   //Tamanho
-	   process(&prox, &rec);
-	   tamanho = rec;
-	   
-	   buf = (char *) malloc(5*sizeof(char) + (atoi(tamanho)+1)*sizeof(char));
-	   *tam = 5*sizeof(char) + (atoi(tamanho)+1)*sizeof(char);
-	   
-	   buf[0] = atoi(destino);
-	   buf[1] = 0;
-	   buf[2] = ESCREVER_VARIAVEL;
-	   buf[3] = atoi(tamanho)+1;
-	   
-	   //Id da variavel
-	   process(&prox, &rec);
-	   buf[4] = atoi(rec);
-	   
-	   //Valor
-	   process(&prox, &rec);
-	   tensao = atof(rec);
-	   conteudo = (unsigned int) ((tensao+10)*262143)/20.0;
-
-	   for(i = atoi(tamanho)+4; i > 4; i--)
-	   {		   
-		   buf[i] = conteudo & 255;		   
-		   conteudo = conteudo >> 8;		
-	   }
-	   
-	   char str[30];
-	   
-	    i = 0;	    
-	   	while(i < atoi(tamanho)+5)
-		{						
-			checksum += buf[i]&255;
-			i++;
-		}
-	   
-  		   	sprintf(str, "%u\n", checksum);
-			debug(str);
-	   
-	   buf[atoi(tamanho)+5] = ~(checksum & 255) + 1;
+   else if(strcmp(rec, "ESCREVER_VARIAVEL") == 0) 
+   {
+	   comando = ESCREVER_VARIAVEL;
+	   *tam = escreverVariavel();
    }
    
    return buf;    
@@ -206,4 +132,86 @@ char * Comando :: receivedPacket(unsigned char* enderecamento,unsigned char* cab
 		error("Checksum invalido");		
 		return "Checksum invalido";
 	}	
+}
+
+int Comando :: escreverVariavel()
+{
+	   char * destino, * tamanho, * rec;	 
+	   int i, result;
+	   int checksum = 0;
+	   double tensao;
+	   unsigned int conteudo;	  
+	  
+	   //Destino
+	   process(&prox, &rec);	   	   
+	   destino = rec;	   
+	   
+	   //Tamanho
+	   process(&prox, &rec);
+	   tamanho = rec;
+	   
+	   buf = (char *) malloc(5*sizeof(char) + (atoi(tamanho)+1)*sizeof(char));
+	   result = 5*sizeof(char) + (atoi(tamanho)+1)*sizeof(char);
+	   
+	   buf[0] = atoi(destino);
+	   buf[1] = 0;
+	   buf[2] = ESCREVER_VARIAVEL;
+	   buf[3] = atoi(tamanho)+1;
+	   
+	   //Id da variavel
+	   process(&prox, &rec);
+	   buf[4] = atoi(rec);
+	   
+	   //Valor
+	   process(&prox, &rec);
+	   tensao = atof(rec);
+	   conteudo = (unsigned int) ((tensao+10)*262143)/20.0;
+
+	   for(i = atoi(tamanho)+4; i > 4; i--)
+	   {		   
+		   buf[i] = conteudo & 255;		   
+		   conteudo = conteudo >> 8;		
+	   }
+	   
+	    i = 0;	    
+	   	while(i < atoi(tamanho)+5)
+		{						
+			checksum += buf[i]&255;
+			i++;
+		}
+	   
+	   buf[atoi(tamanho)+5] = ~(checksum & 255) + 1;
+	   
+	   return result;
+	
+}
+
+void Comando :: lerVariavel()
+{
+		char * rec;
+	    unsigned int checksum = 0;
+	    int indice = 0;
+	    buf = (char *) malloc(6*sizeof(char));	    
+	    
+		//Destino
+		process(&prox, &rec);
+		
+		buf[0] = atoi(rec);		
+		buf[1] = 0;
+		buf[2] = LER_VARIAVEL;
+		buf[3] = 1;
+		
+		//Id variavel
+		process(&prox, &rec);
+		debug(rec);
+					
+		buf[4] = atoi(rec);		
+		
+		while(indice <= 4)
+		{
+			checksum += buf[indice];
+			indice++;			
+		}
+		
+		buf[5] = ~(checksum & 0xFF) + 1;	
 }

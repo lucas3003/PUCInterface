@@ -11,8 +11,13 @@ enum COMANDOS
 
 class Comando
 {	
-	int comando;	
+	int comando;		
+	char * buf;
+	char * prox;
+	
 	void process(char **prox, char **processed);
+	void lerVariavel();
+	int escreverVariavel();
 	int ateEspaco(char * str);
 	bool verificaChecksum(unsigned char * enderecamento,unsigned char * cabecalho,unsigned char * carga, int tam);
 	
