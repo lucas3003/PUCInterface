@@ -1,3 +1,12 @@
+record(waveform, "curva")
+{
+   field(DTYP, "stream")
+   field(INP, "@demo.proto transmitir_bloco_curva(20,1,4) NC")
+   field(FTVL, "SHORT")
+   field(NELM, "65536")
+   field(SCAN, "1 second")
+}
+
 record(ao, "escrita")
 {
    field(DTYP, "stream")	
@@ -15,3 +24,4 @@ record(ai, "leitura")
    field(EGUF, "10")
    field(EGUL, "-10")
 }
+

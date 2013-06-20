@@ -6,6 +6,7 @@ enum COMANDOS
 	LER_VARIAVEL      = 0x10,
 	LEITURA_VARIAVEL  = 0x11,
 	ESCREVER_VARIAVEL = 0x20,
+	TRANSMITIR_BLOCO_CURVA = 0x40,
 	OK_COMMAND        = 0xE0		
 };
 
@@ -18,6 +19,7 @@ class Comando
 	void process(char **prox, char **processed);
 	void lerVariavel();
 	int escreverVariavel();
+	int transmitirBlocoCurva();
 	int ateEspaco(char * str);
 	bool verificaChecksum(unsigned char * enderecamento,unsigned char * cabecalho,unsigned char * carga, int tam);
 	

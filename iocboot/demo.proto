@@ -23,5 +23,12 @@ escrita
    in "OK";
 }
 
+transmitir_bloco_curva
+{
+   # $1 = Destino; $2 = ID Curva; $3 = Offset bloco
+   out "TRANSMITIR_BLOCO_CURVA \$1 \$2 \$3";
+   #in "BLOCO_CURVA %f";
+}
+
 
 

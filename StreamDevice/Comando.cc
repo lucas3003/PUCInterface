@@ -53,6 +53,8 @@ bool Comando :: verificaChecksum(unsigned char * enderecamento, unsigned char * 
 	
 	check = conteudo_total + carga[tam];
 	
+	debug("Checksum correto: %d", 256-conteudo_total);
+	
 	if(check) return false;	
 	return true;
 }
@@ -63,14 +65,14 @@ char * Comando :: sendPacket(char* fromStream, size_t * tam)
    debug("sendPacket chamado\n");
    debug(fromStream);
 	
-	//char * buf;
     char *rec;
     prox = strstr(fromStream, " ");
     
-    int i = ateEspaco(fromStream);
-    rec = (char *) malloc(i);
+    rec = (char *) malloc(ateEspaco(fromStream));
     sscanf(fromStream, "%s", rec);
     prox++;
+    
+    debug("\nCOMANDO ENVIADO: t%st\n\n", rec);
     
    if(strcmp(rec, "LER_VARIAVEL") == 0) 
    {
@@ -79,9 +81,14 @@ char * Comando :: sendPacket(char* fromStream, size_t * tam)
 	   lerVariavel();
    }
    else if(strcmp(rec, "ESCREVER_VARIAVEL") == 0) 
-   {
+   {	  
 	   comando = ESCREVER_VARIAVEL;
 	   *tam = escreverVariavel();
+   }
+   else if(strcmp(rec, "TRANSMITIR_BLOCO_CURVA") == 0)
+   {	   
+	   comando = TRANSMITIR_BLOCO_CURVA;
+	   *tam = transmitirBlocoCurva();
    }
    
    return buf;    
@@ -95,11 +102,24 @@ char * Comando :: receivedPacket(unsigned char* enderecamento,unsigned char* cab
 	
 	double volts;
 	
+	//TIRAR
+	debug("%d\n",enderecamento[0]);
+	debug("%d\n",enderecamento[1]);
+	debug("%d\n",cabecalho[0]);
+	debug("%d\n",cabecalho[1]);
+	debug("%d\n",carga[0]);
+	debug("%d\n",carga[1]);
+	debug("%d\n",carga[2]);
+	debug("%d\n",carga[3]);
+			
+	//
+	
 	if(verificaChecksum(enderecamento, cabecalho, carga, tam))		
 	{
 		if(cabecalho[0] == LEITURA_VARIAVEL)
 		{
-			int temp = 0; i;
+			
+			int temp = 0;
 			unsigned int conteudo = 0;
 			char str[30];
 			
@@ -129,7 +149,7 @@ char * Comando :: receivedPacket(unsigned char* enderecamento,unsigned char* cab
 	}
 	else
 	{
-		error("Checksum invalido");		
+		error("Checksum %d invalido", carga[tam]);		
 		return "Checksum invalido";
 	}	
 }
@@ -181,9 +201,8 @@ int Comando :: escreverVariavel()
 		}
 	   
 	   buf[atoi(tamanho)+5] = ~(checksum & 255) + 1;
-	   
+	   	
 	   return result;
-	
 }
 
 void Comando :: lerVariavel()
@@ -214,4 +233,29 @@ void Comando :: lerVariavel()
 		}
 		
 		buf[5] = ~(checksum & 0xFF) + 1;	
+}
+
+int Comando :: transmitirBlocoCurva()
+{
+	char * rec;
+	buf = (char *) malloc(6*sizeof(char));
+	
+	//Destino
+	process(&prox, &rec);
+	
+	buf[0] = atoi(rec);
+	buf[1] = 0;
+	buf[2] = TRANSMITIR_BLOCO_CURVA;
+	buf[3] = 2;
+	
+	//Id curva
+	process(&prox, &rec);	
+	buf[4] = atoi(rec);
+	
+	//Offset do bloco
+		
+	process(&prox, &rec);	
+	buf[5] = atoi(rec);
+	
+	return 6; //2 do enderecamento, 2 do cabecalho e 2 da carga
 }
