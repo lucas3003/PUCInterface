@@ -341,15 +341,14 @@ void PUCDriverInterface :: writeHandler()
 
 void PUCDriverInterface :: readHandler()
 {
-	debug("Permissao concedida para ler do hardware\n");
-		
-	debug("\n");
-	unsigned char * buffer = (unsigned char *) malloc(64*sizeof(char)); //= inputBuffer.clear().reserve(bufferSize);
+	debug("Permissao concedida para ler do hardware\n\n");
+	//unsigned char * buffer = (unsigned char *) malloc(64*sizeof(char)); //= inputBuffer.clear().reserve(bufferSize);
+	unsigned char * buffer = (unsigned char *) inputBuffer.clear().reserve(64*sizeof(char));
 	pasynUser->timeout = replyTimeout;
-	debug("\n");
 	size_t received;
 	int eomReason;
-	asynStatus status;
+	asynStatus status;	
+	unsigned char temp_tam;
 	
 	if(first) bytesToRead = 4;
 	status = pasynOctet->read(pvtOctet, pasynUser, (char *) buffer, bytesToRead, &received, &eomReason);
@@ -365,26 +364,37 @@ void PUCDriverInterface :: readHandler()
 	        cabecalho = (unsigned char*) malloc(2*sizeof(*cabecalho));
 	        cabecalho[0] = buffer[2];
 	        cabecalho[1] = buffer[3];
+	        temp_tam = cabecalho[1];	        
 	        
-	        tam = cabecalho[1];	        
+			if((temp_tam >> 7) == 1)
+			{
+				temp_tam = temp_tam & 0x7F; //Seta o primeiro bit como 0
+				tam = (128*(1+temp_tam))+2;
+			}
+			else tam = temp_tam;	       
+			
+			//tam = cabecalho[1];
+	        
 			carga = (unsigned char*) malloc(tam+1*sizeof(*carga));
 			bytesToRead = tam+1;
+			
+			//debug("TAMANHO DA CARGA = %d\n", tam);
+			//debug("BYTES TO READ = %d\n", bytesToRead);
 			
 			first = false;
 		}
 		else
-		{				
+		{							
 			carga = buffer;
-			char * processed = com.receivedPacket(enderecamento, cabecalho, carga, tam);	
-			
+			char * processed = com.receivedPacket(enderecamento, cabecalho, carga, tam);							
 			int i = 0;	
 			
 			while(processed[i] != '\0') i++;
 			
+			debug("I = %d\n", i);
+            readCallback(StreamIoEnd, processed, i);			            			
 			
-            readCallback(StreamIoEnd, processed, i);			
-			
-			debug(processed);			
+			//debug(processed);			
 			first = true;
 		}		
 	}
@@ -456,6 +466,23 @@ void processRequest(asynUser* pasynUser)
 
 void timeoutCallback(asynUser* pasynUser)
 {
-	//A implementar
+	PUCDriverInterface* interface = static_cast<PUCDriverInterface*> (pasynUser->userPvt);
+	debug("Tempo de espera excedido!");
+	
+	switch(interface->ioAction)
+	{
+		case Lock:
+			interface->lockCallback(StreamIoTimeout);
+			break;
+			
+		case Write:
+			interface->writeCallback(StreamIoTimeout);
+			break;
+			
+		case Read:
+			interface->readCallback(StreamIoTimeout);
+			break;
+	}
+	
 	return;
 }

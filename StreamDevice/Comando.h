@@ -3,11 +3,12 @@
 
 enum COMANDOS
 {   
-	LER_VARIAVEL      = 0x10,
-	LEITURA_VARIAVEL  = 0x11,
-	ESCREVER_VARIAVEL = 0x20,
+	LER_VARIAVEL           = 0x10,
+	LEITURA_VARIAVEL       = 0x11,
+	ESCREVER_VARIAVEL      = 0x20,
 	TRANSMITIR_BLOCO_CURVA = 0x40,
-	OK_COMMAND        = 0xE0		
+	BLOCO_CURVA            = 0x41,
+	OK_COMMAND             = 0xE0		
 };
 
 class Comando
@@ -21,6 +22,10 @@ class Comando
 	int escreverVariavel();
 	int transmitirBlocoCurva();
 	int ateEspaco(char * str);
+	char * leituraVariavel(unsigned char * enderecamento, unsigned char* carga, int tam);
+	char * okCommand(unsigned char * enderecamento);
+	char * blocoCurva(unsigned char* cabecalho,unsigned char* carga);
+	char * checksumInvalido(unsigned char* carga);
 	bool verificaChecksum(unsigned char * enderecamento,unsigned char * cabecalho,unsigned char * carga, int tam);
 	
 public:

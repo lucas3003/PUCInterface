@@ -5,6 +5,7 @@
 #include "StreamError.h"
 #include <string.h>
 #include <stdint.h>
+#include <string>
 
 /*
  * Prox: String que tem todo o comando vindo do StreamDevice. Porem, essa string vai sendo "picotada" durante os processos,
@@ -96,13 +97,8 @@ char * Comando :: sendPacket(char* fromStream, size_t * tam)
 
 
 char * Comando :: receivedPacket(unsigned char* enderecamento,unsigned char* cabecalho,unsigned char* carga, int tam)
-{
-	char * result;	
-	int i;
-	
-	double volts;
-	
-	//TIRAR
+{	
+	//Depurando o que esta chegando no pacote
 	debug("%d\n",enderecamento[0]);
 	debug("%d\n",enderecamento[1]);
 	debug("%d\n",cabecalho[0]);
@@ -110,48 +106,119 @@ char * Comando :: receivedPacket(unsigned char* enderecamento,unsigned char* cab
 	debug("%d\n",carga[0]);
 	debug("%d\n",carga[1]);
 	debug("%d\n",carga[2]);
-	debug("%d\n",carga[3]);
-			
+	debug("%d\n",carga[3]);			
 	//
 	
-	if(verificaChecksum(enderecamento, cabecalho, carga, tam))		
+	if(cabecalho[0] == BLOCO_CURVA)
+	{
+		debug("BLOCO_CURVA\n");
+		return blocoCurva(cabecalho, carga);
+	}
+	else if(verificaChecksum(enderecamento, cabecalho, carga, tam))		
 	{
 		if(cabecalho[0] == LEITURA_VARIAVEL)
 		{
-			
-			int temp = 0;
-			unsigned int conteudo = 0;
+			return leituraVariavel(enderecamento, carga, tam);
+		}
+		else if(cabecalho[0] == OK_COMMAND)
+		{
+			return okCommand(enderecamento);
+		}		
+	}
+	else
+	{
+		checksumInvalido(carga);
+	}	
+}
+
+//Fazer sobrecarga deste metodo para atender a comunicacao Mestre -> No
+char * Comando :: blocoCurva(unsigned char* cabecalho,unsigned char* carga)
+{
+	double volts;	
+	unsigned int conteudo = 0;			
+	unsigned char temp_tam = cabecalho[1];
+	unsigned char id, offset;
+	int tam, i, j, tamResult = 11, numBytes = 2;
+	//char * result = "BLOCO_CURVA 1 4";
+	char result[128000] = "BLOCO_CURVA"; //= "BLOCO_CURVA";
+	char str[30];
+	
+	//Considerar colocar esse bloco em um metodo separado
+	if((temp_tam >> 7) == 1)
+	{
+		temp_tam = temp_tam & 0x7F; //Seta o primeiro bit como 0
+		tam = (128*(1+temp_tam))+2;
+	}
+	else tam = temp_tam;
+	
+	////////////////////////////////////////////////////
+	
+	if(tam != 16386) 
+	{
+		error("Curva de tamanho %d e invalido", tam);
+		return "Curva invalida";
+	}	
+	
+	id = carga[0];
+	offset = carga[1];
+	
+	sprintf(result, "%s %d %d",result, id, offset);		
+	
+	debug("Carga[%d] = %d\n",16000,carga[16000]);
+
+	for(i = 2; i < tam; i+=numBytes)
+	{		
+		conteudo = 0;
+		volts = 0;
+		
+		for(j = 0; j < numBytes; j++)
+		{
+			conteudo = conteudo << 8;
+			conteudo += carga[i+j];			
+		}
+
+		volts = ((20*conteudo)/65535.0)-10;		
+		sprintf(result, "%s %.5f",result, volts);		
+	}
+	
+	return result;
+}
+
+char * Comando :: checksumInvalido(unsigned char* carga)
+{
+	error("Checksum invalido");
+	return "Checksum invalido";
+}
+
+char * Comando :: okCommand(unsigned char * enderecamento)
+{
+	char * result;	
+	asprintf(&result, "OK %u", enderecamento[1]);
+	
+	return result; 
+}
+
+char * Comando :: leituraVariavel(unsigned char * enderecamento, unsigned char* carga, int tam)
+{
+			char * result;	
+			int i;			
+			double volts;
+			unsigned int conteudo = 0;			
 			char str[30];
-			
 								
 			for(i = 0; i < tam; i ++)
 			{
 				conteudo = conteudo << 8;
 				conteudo += carga[i];
-			}			
-
-			volts = ((20*conteudo)/262143.0)-10;
-
-			sprintf(str, "%d\n", conteudo);
-			debug(str);			
+			}
 			
 			sprintf(str, "%f\n", volts);
 			
-			result = (char *) malloc(sizeof(str) + sizeof("LEITURA_VARIAVEL"));			
-			sprintf(result, "LEITURA_VARIAVEL %f", volts);
+			//result = (char *) malloc(sizeof(str) + sizeof("LEITURA_VARIAVEL "));			
+			volts = ((20*conteudo)/262143.0)-10;			
+			asprintf(&result, "LEITURA_VARIAVEL %u %f", enderecamento[1], volts);
 						
-			return result;
-		}
-		else if(cabecalho[0] == OK_COMMAND)
-		{
-			return "OK";
-		}
-	}
-	else
-	{
-		error("Checksum %d invalido", carga[tam]);		
-		return "Checksum invalido";
-	}	
+			return result;	
 }
 
 int Comando :: escreverVariavel()
