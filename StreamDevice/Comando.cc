@@ -16,8 +16,10 @@
 void Comando :: process(char **prox, char **processed)
 {
     int i = ateEspaco(*prox);
-    *processed = (char *) malloc(i);
+    debug("ateEspaco = %d\n", i);	
+    *processed = (char *) malloc(i);    
     sscanf(*prox, "%s", *processed);
+    debug("Depois do malloc e do sscanf\n");
     *prox = strstr(*prox, " ")+1;		    
 }
 
@@ -29,6 +31,8 @@ int Comando :: ateEspaco(char * str)
     {
 		if(str[i] == ' ') break;
 		i++;
+		
+		if(i == strlen(str)-1) { i++; break; };		  
 	}	
 	
 	return i;
@@ -91,6 +95,11 @@ char * Comando :: sendPacket(char* fromStream, size_t * tam)
 	   comando = TRANSMITIR_BLOCO_CURVA;
 	   *tam = transmitirBlocoCurva();
    }
+   else if(strcmp(rec, "BLOCO_CURVA") == 0)
+   {
+	   comando = BLOCO_CURVA;
+	   *tam = blocoCurva();
+   }
    
    return buf;    
 }
@@ -124,12 +133,18 @@ char * Comando :: receivedPacket(unsigned char* enderecamento,unsigned char* cab
 		{
 			return okCommand(enderecamento);
 		}		
+		else
+		{
+			error("Comando invalido");
+			return "Comando invalido";
+		}
 	}
 	else
 	{
 		checksumInvalido(carga);
 	}	
 }
+
 
 //Fazer sobrecarga deste metodo para atender a comunicacao Mestre -> No
 char * Comando :: blocoCurva(unsigned char* cabecalho,unsigned char* carga)
@@ -220,6 +235,74 @@ char * Comando :: leituraVariavel(unsigned char * enderecamento, unsigned char* 
 						
 			return result;	
 }
+
+int Comando :: blocoCurva()
+{
+	char * destino, * id, * offset , * rec;
+	int checksum = 0, i, j, ibuf;
+	unsigned int conteudo;
+	double tensao;
+	
+	//Destino 
+	process(&prox, &rec);
+	destino = rec;
+	
+	//ID
+	process(&prox, &rec);
+	id = rec;
+	
+	//Offset
+	process(&prox, &rec);
+	offset = rec;
+
+    debug("blocoCurva()\n");	
+	
+	buf = (char *) malloc(16390*sizeof(char));
+	
+	buf[0] = atoi(destino);
+	buf[1] = 0;
+	buf[2] = BLOCO_CURVA;
+	buf[3] = 0xFF;
+	buf[4] = atoi(id);
+	buf[5] = atoi(offset);
+	ibuf = 6; //Indice do buffer
+	
+	debug("PROX = %s , REC = %s\n", prox, rec);
+	process(&prox, &rec);
+	
+	//8192 pontos em cada offset
+	for(i = 0; i < 8192; i++)
+	{
+		if(strlen(prox) == 0)
+		{			
+			buf[ibuf++] = 0;
+			buf[ibuf++] = 0;
+		}
+		else
+		{
+			debug("DEBUG %d\n", i);
+			debug("ANTES DO PROCESS: PROX = t%st , REC = %s\n", prox, rec);
+			process(&prox, &rec);
+			debug("DEPOIS DO PROCESS: PROX = t%st , REC = %s\n", prox, rec);
+			
+			tensao = atof(rec);
+			debug("Tensao: %f\n", tensao);
+			
+			conteudo = (unsigned int) ((tensao+10)*65535)/20.0;
+			debug("Conteudo: %u\n", conteudo);
+			
+			buf[ibuf++] = (conteudo >> 8) & 0xFF;
+			debug("buf[%d] = %u\n",ibuf-1, buf[ibuf-1]);
+			buf[ibuf++] = conteudo & 0xFF;
+			debug("buf[%d] = %u\n",ibuf-1, buf[ibuf-1]);		
+		}								
+	}
+	
+	buf[16389] = 0;
+	
+	return 16390; //2 de enderecamento, 2 de cabecalho, 16386 de carga util e 0 de checksum
+}
+
 
 int Comando :: escreverVariavel()
 {

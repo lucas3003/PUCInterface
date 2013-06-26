@@ -17,16 +17,17 @@ class Comando
 	char * buf;
 	char * prox;
 	
-	void process(char **prox, char **processed);
-	void lerVariavel();
-	int escreverVariavel();
-	int transmitirBlocoCurva();
-	int ateEspaco(char * str);
+	void   process(char **prox, char **processed);
+	void   lerVariavel();
+	int    escreverVariavel();
+	int    transmitirBlocoCurva();
+	int    ateEspaco(char * str);
 	char * leituraVariavel(unsigned char * enderecamento, unsigned char* carga, int tam);
 	char * okCommand(unsigned char * enderecamento);
 	char * blocoCurva(unsigned char* cabecalho,unsigned char* carga);
+	int    blocoCurva();
 	char * checksumInvalido(unsigned char* carga);
-	bool verificaChecksum(unsigned char * enderecamento,unsigned char * cabecalho,unsigned char * carga, int tam);
+	bool   verificaChecksum(unsigned char * enderecamento,unsigned char * cabecalho,unsigned char * carga, int tam);
 	
 public:
 	char * sendPacket(char* fromStream, size_t * tam);
